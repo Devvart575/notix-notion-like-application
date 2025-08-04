@@ -28,7 +28,7 @@ export const AuthForm = ({ isLogin, onToggle }) => {
         await signup(formData.username, formData.email, formData.password);
       }
 
-      // ✅ Redirect to /app after successful login/signup
+      // Redirect to /app after successful login/signup
       navigate('/app');
     } catch (err) {
       setError(err.message || 'Something went wrong');

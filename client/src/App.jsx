@@ -22,8 +22,8 @@ const ProtectedRoute = () => {
 
   if (loading) return null; // or a loader/spinner
 
-  if (!user) {
-    return <Navigate to="/auth/login" state={{ backgroundLocation: location }} replace />;
+   if (!user) {
+    return null
   }
 
   return <Outlet />;

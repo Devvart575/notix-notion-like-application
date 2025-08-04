@@ -17,9 +17,10 @@ export const Sidebar = ({ pages, onSelectPage, onCreatePage, onDeletePage, selec
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();         // clear token, user = null
-    navigate("/");    // immediately redirect to home
-  };
+  logout(() => {
+    navigate("/", { replace: true }); // clean redirect to home
+  });
+};
   const renderPageTree = (pages, parentId = null, level = 0) => {
     return pages
       .filter(page => page.parentPage?._id === parentId || (!page.parentPage && !parentId))
@@ -101,7 +102,7 @@ export const Sidebar = ({ pages, onSelectPage, onCreatePage, onDeletePage, selec
 
       <div className="absolute bottom-4 left-2 right-4">
         <button
-          onClick={handleLogout()}
+          onClick={handleLogout}
           className={`flex items-center space-x-2 w-24 px-3 py-2 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 ${
             isCollapsed ? 'justify-center' : ''
           }`}

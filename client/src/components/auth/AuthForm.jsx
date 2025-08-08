@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { COLORS } from '../../utils/constant.js';
@@ -11,10 +11,16 @@ export const AuthForm = ({ isLogin, onToggle }) => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, signup } = useAuth();
+  const { login, signup, user } = useAuth();
 
   const navigate = useNavigate();
   const location = useLocation();
+
+   useEffect(() => {
+  if (user && location.pathname.startsWith('/auth')) {
+    navigate('/app', { replace: true });
+  }
+}, [user, navigate, location]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,8 +34,7 @@ export const AuthForm = ({ isLogin, onToggle }) => {
         await signup(formData.username, formData.email, formData.password);
       }
 
-      // Redirect to /app after successful login/signup
-      navigate('/app');
+
     } catch (err) {
       setError(err.message || 'Something went wrong');
     }

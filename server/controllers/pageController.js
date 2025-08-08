@@ -82,3 +82,27 @@ async function deletePageAndChildren(pageId) {
   // 4. Delete the page itself
   await Page.findByIdAndDelete(pageId);
 }
+
+
+// PATCH: Reorder tasks inside a page
+export const reorderTasks = async (req, res) => {
+  const { id } = req.params;
+  const { reorderedTasks } = req.body;
+
+  if (!Array.isArray(reorderedTasks)) {
+    return res.status(400).json({ message: "reorderedTasks must be an array" });
+  }
+
+  try {
+    const page = await Page.findById(id);
+    if (!page) return res.status(404).json({ message: "Page not found" });
+
+    // Replace tasks with new order
+    page.tasks = reorderedTasks;
+    await page.save();
+
+    res.status(200).json({ message: "Tasks reordered", tasks: page.tasks });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

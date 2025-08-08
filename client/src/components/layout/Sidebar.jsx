@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   FileText, 
@@ -16,10 +16,15 @@ export const Sidebar = ({ pages, onSelectPage, onCreatePage, onDeletePage, selec
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-  logout(() => {
-    navigate("/", { replace: true }); // clean redirect to home
-  });
+  useEffect(() => {
+  if (!user) {
+    navigate('/');
+  }
+}, [user, navigate]); //  Stable deps
+
+ const handleLogout = () => {
+  logout();             // Clears token and user
+  navigate('/', { replace: true });  //  Redirect to /
 };
   const renderPageTree = (pages, parentId = null, level = 0) => {
     return pages

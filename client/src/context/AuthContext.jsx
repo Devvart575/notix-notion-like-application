@@ -41,15 +41,10 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const logout = (onLogoutComplete) => {
-  localStorage.removeItem('token');
-  
-  // Delay setting user to null, so navigate runs first
-  setTimeout(() => {
-    setUser(null); // this triggers ProtectedRoute
-    if (onLogoutComplete) onLogoutComplete();
-  }, 0);
-};
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+  };
 
   return (
     <AuthContext.Provider value={{ user, login, signup, logout, loading }}>

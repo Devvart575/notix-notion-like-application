@@ -20,10 +20,11 @@ const ProtectedRoute = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return null; // or a loader/spinner
+  if (loading) return <div className="text-center py-10">Loading...</div>;
 
-   if (!user) {
-    return null
+  // Prevent redirect loop:
+  if (!user && location.pathname.startsWith('/app')) {
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;

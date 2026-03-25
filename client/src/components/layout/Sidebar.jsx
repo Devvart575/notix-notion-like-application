@@ -5,14 +5,17 @@ import {
   Trash2, 
   LogOut,
   User,
-  Menu
+  Menu,
+  Home
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { COLORS } from '../../utils/constant.js';
 import { useNavigate } from 'react-router-dom';
 
-export const Sidebar = ({ pages, onSelectPage, onCreatePage, onDeletePage, selectedPage }) => {
+export const Sidebar = ({ pages, onSelectPage, onCreatePage, onDeletePage, selectedPage, onReorderPages }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [draggedPageId, setDraggedPageId] = useState(null);
+  const [dragOverPageId, setDragOverPageId] = useState(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -26,15 +29,68 @@ export const Sidebar = ({ pages, onSelectPage, onCreatePage, onDeletePage, selec
   logout();             // Clears token and user
   navigate('/', { replace: true });  //  Redirect to /
 };
+
+  const handleDragStart = (e, pageId) => {
+    setDraggedPageId(pageId);
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => {
+      e.target.style.opacity = '0.5';
+    }, 0);
+  };
+
+  const handleDragOver = (e, pageId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (pageId !== draggedPageId) {
+      setDragOverPageId(pageId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverPageId(null);
+  };
+
+  const handleDragEnd = (e) => {
+    e.target.style.opacity = '1';
+    setDraggedPageId(null);
+    setDragOverPageId(null);
+  };
+
+  const handleDrop = (e, dropPageId) => {
+    e.preventDefault();
+    if (!draggedPageId || draggedPageId === dropPageId) {
+      handleDragEnd(e);
+      return;
+    }
+
+    const draggedIndex = pages.findIndex(p => p._id === draggedPageId);
+    const dropIndex = pages.findIndex(p => p._id === dropPageId);
+
+    const newPages = [...pages];
+    const [draggedItem] = newPages.splice(draggedIndex, 1);
+    
+    newPages.splice(dropIndex, 0, draggedItem);
+
+    const reordered = newPages.map((p, idx) => ({ ...p, position: idx }));
+    if(onReorderPages) onReorderPages(reordered);
+
+    handleDragEnd(e);
+  };
   const renderPageTree = (pages, parentId = null, level = 0) => {
     return pages
       .filter(page => page.parentPage?._id === parentId || (!page.parentPage && !parentId))
       .map(page => (
         <div key={page._id} style={{ marginLeft: `${level * 20}px` }}>
           <div
-            className={`flex items-center justify-between p-2 rounded-md cursor-pointer hover:bg-gray-100 transition-colors group ${
-              selectedPage?._id === page._id ? 'bg-gray-100' : ''
-            }`}
+            draggable
+            onDragStart={(e) => handleDragStart(e, page._id)}
+            onDragOver={(e) => handleDragOver(e, page._id)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, page._id)}
+            onDragEnd={handleDragEnd}
+            className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors group ${
+              selectedPage?._id === page._id ? 'bg-gray-100' : 'hover:bg-gray-50'
+            } ${dragOverPageId === page._id ? 'border-t-2 border-blue-500' : ''}`}
             onClick={() => onSelectPage(page)}
           >
             <div className="flex items-center space-x-2 flex-1">
@@ -87,6 +143,22 @@ export const Sidebar = ({ pages, onSelectPage, onCreatePage, onDeletePage, selec
           </button>
         </div>
       </div>
+
+      {!isCollapsed && (
+        <div className="p-4 border-b border-gray-100 bg-gray-50/30">
+          <button
+            onClick={() => onSelectPage(null)}
+            className={`flex items-center space-x-3 w-full px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+              !selectedPage 
+                ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm border border-blue-100' 
+                : 'hover:bg-gray-100 text-gray-700 font-medium'
+            }`}
+          >
+            <Home className="w-4 h-4" />
+            <span>Home</span>
+          </button>
+        </div>
+      )}
 
       {!isCollapsed && (
         <div className="p-4">

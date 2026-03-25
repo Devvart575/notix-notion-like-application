@@ -23,6 +23,11 @@ const pageSchema = new mongoose.Schema({
     trim: true,
   },
 
+  position: {
+    type: Number,
+    default: 0,
+  },
+
   content: {
     type: String,
     default: "", // notes textarea content

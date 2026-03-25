@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthForm } from './auth/AuthForm.jsx';
 import { PageEditor } from './editor/PageEditor.jsx';
+import { HomeDashboard } from './home/HomeDashboard.jsx';
 import { Sidebar } from './layout/Sidebar.jsx';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiCall } from '../services/api.js';
@@ -11,7 +12,21 @@ export const MainApp = () => {
   const [pages, setPages] = useState([]);
   const [selectedPage, setSelectedPage] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [recentPageIds, setRecentPageIds] = useState(() => {
+    const saved = localStorage.getItem('recentPages');
+    return saved ? JSON.parse(saved) : [];
+  });
   const { user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (selectedPage) {
+      setRecentPageIds(prev => {
+        const updated = [selectedPage._id, ...prev.filter(id => id !== selectedPage._id)].slice(0, 6); // Top 6
+        localStorage.setItem('recentPages', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, [selectedPage]);
 
   useEffect(() => {
     if (user) {
@@ -22,6 +37,7 @@ export const MainApp = () => {
   const loadPages = async () => {
     try {
       const data = await apiCall('/pages');
+      data.sort((a, b) => (a.position || 0) - (b.position || 0));
       setPages(data);
     } catch (err) {
       console.error('Failed to load pages:', err);
@@ -30,17 +46,35 @@ export const MainApp = () => {
   };
 
   const createPage = async () => {
-    const title = prompt('Enter page title:');
-    if (!title) return;
-
     try {
       const newPage = await apiCall('/pages', {
         method: 'POST',
-        body: JSON.stringify({ title }),
+        body: JSON.stringify({ title: 'Untitled' }),
       });
       setPages([...pages, newPage]);
+      setSelectedPage(newPage);
     } catch (err) {
       console.error('Failed to create page:', err);
+    }
+  };
+
+  const handleUpdateTitle = (pageId, newTitle) => {
+    setPages(pages.map(p => p._id === pageId ? { ...p, title: newTitle } : p));
+    if (selectedPage && selectedPage._id === pageId) {
+      setSelectedPage({ ...selectedPage, title: newTitle });
+    }
+  };
+
+  const handleReorderPages = async (reorderedPages) => {
+    setPages(reorderedPages);
+    try {
+      const pagesPayload = reorderedPages.map((p, index) => ({ id: p._id, position: index }));
+      await apiCall('/pages/reorder', {
+        method: 'PUT',
+        body: JSON.stringify({ pages: pagesPayload })
+      });
+    } catch (err) {
+      console.error('Failed to save page order:', err);
     }
   };
 
@@ -80,29 +114,23 @@ export const MainApp = () => {
         onCreatePage={createPage}
         onDeletePage={deletePage}
         selectedPage={selectedPage}
+        onReorderPages={handleReorderPages}
       />
-      
+
       <div className="flex-1 overflow-auto">
         {selectedPage ? (
-          <PageEditor page={selectedPage} onBack={() => setSelectedPage(null)} />
+          <PageEditor
+            page={selectedPage}
+            onBack={() => setSelectedPage(null)}
+            onUpdateTitle={handleUpdateTitle}
+          />
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold mb-4" style={{ color: COLORS.primary }}>
-                Welcome to Your Workspace
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Select a page from the sidebar or create a new one to get started.
-              </p>
-              <button
-                onClick={createPage}
-                className="px-6 py-3 text-black rounded-md transition-opacity hover:opacity-90"
-                style={{ backgroundColor: COLORS.secondary }}
-              >
-                Create Your First Page
-              </button>
-            </div>
-          </div>
+          <HomeDashboard 
+            user={user} 
+            recentPageIds={recentPageIds} 
+            pages={pages} 
+            onSelectPage={setSelectedPage} 
+          />
         )}
       </div>
     </div>
